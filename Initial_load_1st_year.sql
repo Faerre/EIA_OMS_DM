@@ -1,9 +1,9 @@
 DECLARE YM_START NUMBER:=0;
 YM_END NUMBER:=0;
 BEGIN
- FOR i IN 24101..24105 LOOP
-  YM_START:=DWSEAI01.YMM2YM(i-5);
-  YM_END:=DWSEAI01.YMM2YM(i);
+ FOR i IN 24101..24105 LOOP /*Loop counter in YEARMONTH_MONTHS*/
+  YM_START:=DWSEAI01.YMM2YM(i-5); /*Start of OMS Sales period (6 months including focus month, for RF calculation*/
+  YM_END:=DWSEAI01.YMM2YM(i); /*DWSEAI01.YMM2YM converts YEARMONTH_MONTHS to YEARMONTH*/
   INSERT  /*+ append parallel(t,32)*/ 
   INTO DWSEAI01.OMS_TEMP_RMS_2021 t
    SELECT   /*+ parallel(s,32)*/ * FROM (WITH SNAPSHOT_TBL AS
