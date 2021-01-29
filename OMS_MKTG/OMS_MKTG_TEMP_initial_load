@@ -1,0 +1,524 @@
+DECLARE
+  YM_START NUMBER:=0;
+  YM_END   NUMBER:=0;
+BEGIN
+  FOR i IN 24146..24168/*From 201202 till 201312*/
+  LOOP
+    /*From 200710 till 201012*/
+    /*Loop counter in YEARMONTH_MONTHS*/
+    YM_START:=DWSEAI01.YMM2YM(i-2);
+    /*Start of OMS Sales period (3 months including focus month, for R_IMC calculation*/
+    YM_END:=DWSEAI01.YMM2YM(i);
+    /*DWSEAI01.YMM2YM converts YEARMONTH_MONTHS to YEARMONTH*/
+    INSERT /*+ append parallel(t,32)*/
+    INTO DWSEAI01.OMS_MKTG_TEMP_2021 t
+    SELECT
+      /*+ parallel(s,32)*/
+      *
+    FROM
+      (WITH ATM AS
+      (SELECT AFF_KEY_NO,
+        BASE_7_ITEM_NO,
+        MAX(BUS_LN.GLBL_BUS_LN_DESC) AS GLBL_BUS_LN_DESC,
+        MAX(CTGRY.GLBL_CTGRY_DESC)   AS GLBL_CTGRY_DESC,
+        MAX(BRAND.GLBL_BRAND_DESC)   AS GLBL_BRAND_DESC
+      FROM
+        (SELECT
+          CASE
+            WHEN INSTR(REGEXP_REPLACE(SUBSTR(TRIM(ITEM), 4, LENGTH(TRIM(ITEM))                      -3), '[BCDEFGHIJKLMNOPQRSTUVWXYZ]', 'A'), 'A')>0
+            THEN SUBSTR(TRIM(ITEM), 1, INSTR(REGEXP_REPLACE(SUBSTR(TRIM(ITEM), 4, LENGTH(TRIM(ITEM))-3), '[BCDEFGHIJKLMNOPQRSTUVWXYZ]', 'A'), 'A')+ 2)
+            ELSE TRIM(ITEM)
+          END AS BASE_7_ITEM_NO,
+          CASE
+            WHEN NVL(ITEM_CNTRY_CD, INTGRT_CNTRY_CD) IN ('010', '020', '580', '700')
+            THEN 2
+            WHEN NVL(ITEM_CNTRY_CD, INTGRT_CNTRY_CD) IN ('030', '240')
+            THEN 3
+            WHEN NVL(ITEM_CNTRY_CD, INTGRT_CNTRY_CD) IN ('040', '300')
+            THEN 4
+            WHEN NVL(ITEM_CNTRY_CD, INTGRT_CNTRY_CD) IN ('060', '080')
+            THEN 6
+            WHEN NVL(ITEM_CNTRY_CD, INTGRT_CNTRY_CD) IN ('070')
+            THEN 7
+            WHEN NVL(ITEM_CNTRY_CD, INTGRT_CNTRY_CD) IN ('090', '120')
+            THEN 9
+            WHEN NVL(ITEM_CNTRY_CD, INTGRT_CNTRY_CD) IN ('100', '530', '780')
+            THEN 10
+            WHEN NVL(ITEM_CNTRY_CD, INTGRT_CNTRY_CD) IN ('110')
+            THEN 11
+            WHEN NVL(ITEM_CNTRY_CD, INTGRT_CNTRY_CD) IN ('130')
+            THEN 12
+            WHEN NVL(ITEM_CNTRY_CD, INTGRT_CNTRY_CD) IN ('140', '150', '340', '390', '450', '490', '590', '620', '650', '660', '800', '810', '820')
+            THEN 14
+            WHEN NVL(ITEM_CNTRY_CD, INTGRT_CNTRY_CD) IN ('160')
+            THEN 15
+            WHEN NVL(ITEM_CNTRY_CD, INTGRT_CNTRY_CD) IN ('170', '190', '230', '260', '290', '310', '380', '400', '440', '510', '520', '600')
+            THEN 16
+            WHEN NVL(ITEM_CNTRY_CD, INTGRT_CNTRY_CD) IN ('180')
+            THEN 17
+            WHEN NVL(ITEM_CNTRY_CD, INTGRT_CNTRY_CD) IN ('200')
+            THEN 19
+            WHEN NVL(ITEM_CNTRY_CD, INTGRT_CNTRY_CD) IN ('210')
+            THEN 20
+            WHEN NVL(ITEM_CNTRY_CD, INTGRT_CNTRY_CD) IN ('220')
+            THEN 21
+            WHEN NVL(ITEM_CNTRY_CD, INTGRT_CNTRY_CD) IN ('250', '270')
+            THEN 24
+            WHEN NVL(ITEM_CNTRY_CD, INTGRT_CNTRY_CD) IN ('350')
+            THEN 29
+            WHEN NVL(ITEM_CNTRY_CD, INTGRT_CNTRY_CD) IN ('050', '360')
+            THEN 30
+            WHEN NVL(ITEM_CNTRY_CD, INTGRT_CNTRY_CD) IN ('420', '830')
+            THEN 33
+            WHEN NVL(ITEM_CNTRY_CD, INTGRT_CNTRY_CD) IN ('430')
+            THEN 34
+            WHEN NVL(ITEM_CNTRY_CD, INTGRT_CNTRY_CD) IN ('280', '370', '460', '470')
+            THEN 36
+            WHEN NVL(ITEM_CNTRY_CD, INTGRT_CNTRY_CD) IN ('480')
+            THEN 37
+            WHEN NVL(ITEM_CNTRY_CD, INTGRT_CNTRY_CD) IN ('570', '740', '750')
+            THEN 39
+            WHEN NVL(ITEM_CNTRY_CD, INTGRT_CNTRY_CD) IN ('500')
+            THEN 42
+            ELSE 0
+          END AS AFF_KEY_NO,
+          ITEM_REV,
+          MAX(ITEM_REV) OVER(PARTITION BY
+          CASE
+            WHEN INSTR(REGEXP_REPLACE(SUBSTR(TRIM(ITEM), 4, LENGTH(TRIM(ITEM))                      -3), '[BCDEFGHIJKLMNOPQRSTUVWXYZ]', 'A'), 'A')>0
+            THEN SUBSTR(TRIM(ITEM), 1, INSTR(REGEXP_REPLACE(SUBSTR(TRIM(ITEM), 4, LENGTH(TRIM(ITEM))-3), '[BCDEFGHIJKLMNOPQRSTUVWXYZ]', 'A'), 'A')+ 2)
+            ELSE TRIM(ITEM)
+          END, NVL(ITEM_CNTRY_CD, INTGRT_CNTRY_CD)) AS ITEM_REV_MAX,
+          BUS_CATG_CD,
+          BUS_LN_CD,
+          BRAND_CD
+        FROM DWSATM01.DWT42126_ITEM_EBS
+        WHERE NVL(ITEM_CNTRY_CD, INTGRT_CNTRY_CD) IN ('030','240','210','620','650','390','800','340','820','810','150','590','490','140','450','660','080','060','480','160','120','090','470','460','280','370','750','740','570','270','250','110','300','040','430','830','420')
+        ) DICT,
+        DWSATM01.DWT43045_GLBL_BUS_LN BUS_LN,
+        DWSATM01.DWT43046_GLBL_CTGRY CTGRY,
+        DWSATM01.DWT43048_GLBL_BRAND BRAND
+      WHERE DICT.BUS_CATG_CD = CTGRY.GLBL_CTGRY_CD(+)
+      AND DICT.BUS_LN_CD     = BUS_LN.GLBL_BUS_LN_CD(+)
+      AND DICT.BRAND_CD      = BRAND.GLBL_BRAND_CD(+)
+        --  AND BUS_LN.DESCRIPTION<>'OTHER'
+      AND DICT.ITEM_REV = DICT.ITEM_REV_MAX
+      GROUP BY BASE_7_ITEM_NO,
+        AFF_KEY_NO
+      ),
+      ITM_ADM AS
+      (SELECT
+        CASE
+          WHEN CNTRY_KEY_NO IN (3, 4, 53, 58)
+          THEN 2
+          WHEN CNTRY_KEY_NO IN (5, 26)
+          THEN 3
+          WHEN CNTRY_KEY_NO IN (6, 32)
+          THEN 4
+          WHEN CNTRY_KEY_NO IN (8, 10)
+          THEN 6
+          WHEN CNTRY_KEY_NO IN (7)
+          THEN 7
+          WHEN CNTRY_KEY_NO IN (11, 14)
+          THEN 9
+          WHEN CNTRY_KEY_NO IN (12, 51, 61)
+          THEN 10
+          WHEN CNTRY_KEY_NO IN (13)
+          THEN 11
+          WHEN CNTRY_KEY_NO IN (15)
+          THEN 12
+          WHEN CNTRY_KEY_NO IN (16, 17, 34, 39, 44, 48, 54, 56, 57, 74, 75, 76, 134)
+          THEN 14
+          WHEN CNTRY_KEY_NO IN (18)
+          THEN 15
+          WHEN CNTRY_KEY_NO IN (19, 21, 25, 28, 31, 33, 38, 40, 43, 49, 50, 55)
+          THEN 16
+          WHEN CNTRY_KEY_NO IN (20)
+          THEN 17
+          WHEN CNTRY_KEY_NO IN (22)
+          THEN 19
+          WHEN CNTRY_KEY_NO IN (23)
+          THEN 20
+          WHEN CNTRY_KEY_NO IN (24)
+          THEN 21
+          WHEN CNTRY_KEY_NO IN (27, 29)
+          THEN 24
+          WHEN CNTRY_KEY_NO IN (35)
+          THEN 29
+          WHEN CNTRY_KEY_NO IN (7, 36)
+          THEN 30
+          WHEN CNTRY_KEY_NO IN (41, 114)
+          THEN 33
+          WHEN CNTRY_KEY_NO IN (42)
+          THEN 34
+          WHEN CNTRY_KEY_NO IN (30, 37, 45, 46)
+          THEN 36
+          WHEN CNTRY_KEY_NO IN (47)
+          THEN 37
+          WHEN CNTRY_KEY_NO IN (52, 59, 60)
+          THEN 39
+          WHEN CNTRY_KEY_NO IN (73)
+          THEN 42
+          ELSE 0
+        END AS AFF_KEY_NO,
+        CASE
+          WHEN INSTR(REGEXP_REPLACE(SUBSTR(TRIM(ITEM_NO), 4, LENGTH(TRIM(ITEM_NO))                         -3), '[BCDEFGHIJKLMNOPQRSTUVWXYZ]', 'A'), 'A')>0
+          THEN SUBSTR(TRIM(ITEM_NO), 1, INSTR(REGEXP_REPLACE(SUBSTR(TRIM(ITEM_NO), 4, LENGTH(TRIM(ITEM_NO))-3), '[BCDEFGHIJKLMNOPQRSTUVWXYZ]', 'A'), 'A')+ 2)
+          ELSE TRIM(ITEM_NO)
+        END AS BASE_7_ITEM_NO,
+        ITEM_NO,
+        ITEM_KEY_NO,
+        GLBL_BUS_LN_DESC,
+        GLBL_BRAND_DESC,
+        GLBL_CTGRY_DESC,
+        GLBL_SUB_CTGRY_DESC,
+        GLBL_PRDCT_GRP_DESC,
+        GLBL_PRDCT_FMLY_DESC,
+        GLBL_SUB_BRAND_DESC,
+        GLBL_BASE_ITEM_DESC,
+        CNTRY_KEY_NO
+      FROM DWSAVR02.DWV03000_ITEM_DIM
+      WHERE CNTRY_KEY_NO IN (6, 8, 10, 11, 13, 14, 16, 17, 18, 23, 27, 29, 30, 32, 34, 37, 39, 41, 42, 44, 45, 46, 47, 48, 52, 54, 56, 57, 59, 60, 74, 75, 76, 114, 134, 5, 26)
+      ),
+      ITEM_DIM_CORR AS
+      (SELECT ITM_ADM.CNTRY_KEY_NO,
+        ITM_ADM.ITEM_KEY_NO,
+        BASE_7_ITEM_NO,
+        ITM_ADM.ITEM_NO,
+        NVL(NVL(NULLIF(ITM_ADM.GLBL_BUS_LN_DESC, 'OTHER'), ATM.GLBL_BUS_LN_DESC), ITM_ADM.GLBL_BUS_LN_DESC)  AS GLBL_BUS_LN_DESC,
+        NVL(NVL(NULLIF(ITM_ADM.GLBL_BRAND_DESC, 'UNDEFINED'), ATM.GLBL_BRAND_DESC), ITM_ADM.GLBL_BRAND_DESC) AS GLBL_BRAND_DESC,
+        NVL(NVL(
+        CASE
+          WHEN ITM_ADM.GLBL_CTGRY_DESC IN ('OTHER', 'DEFAULT', 'NONE')
+          THEN NULL
+          ELSE ITM_ADM.GLBL_CTGRY_DESC
+        END, ATM.GLBL_CTGRY_DESC), ITM_ADM.GLBL_CTGRY_DESC) AS GLBL_CTGRY_DESC,
+        GLBL_SUB_CTGRY_DESC,
+        GLBL_PRDCT_GRP_DESC,
+        GLBL_PRDCT_FMLY_DESC,
+        GLBL_SUB_BRAND_DESC,
+        GLBL_BASE_ITEM_DESC
+      FROM ITM_ADM ITM_ADM
+      LEFT JOIN ATM ATM USING(AFF_KEY_NO, BASE_7_ITEM_NO)
+      ),
+      EUR_MKTG_INPUT AS
+      (SELECT SALES_T.SKU,
+        MAX(NVL(UPPER(EUR_MAP.BUS_LINE), SALES_T.BUS_LINE)) AS BUSINESS_LINE,
+        MAX(NVL(DECODE(SUBSTR(EUR_MAP.BRAND_GROUP, 1, 3),'N/A', UPPER(EUR_MAP.BRAND_GROUP), EUR_MAP.BRAND_GROUP), 'N/A - '
+        ||SALES_T.BUS_LINE)) AS BRAND_GROUP,
+        MAX(NVL(DECODE(SUBSTR(EUR_MAP."CATEGORY", 1, 3),'N/A', UPPER(EUR_MAP."CATEGORY"), EUR_MAP."CATEGORY"), 'N/A - '
+        ||SALES_T.BUS_LINE)) AS "CATEGORY",
+        MAX(NVL(DECODE(SUBSTR(EUR_MAP.SUB_CATEGORY, 1, 3),'N/A', UPPER(EUR_MAP.SUB_CATEGORY), EUR_MAP.SUB_CATEGORY), 'N/A - '
+        ||SALES_T.BUS_LINE)) AS SUB_CATEGORY,
+        MAX(NVL(DECODE(SUBSTR(EUR_MAP.PRODUCT_FAMILY, 1, 3),'N/A', UPPER(EUR_MAP.PRODUCT_FAMILY), EUR_MAP.PRODUCT_FAMILY), 'N/A - '
+        ||SALES_T.BUS_LINE))                         AS PRODUCT_FAMILY,
+        MAX(NVL(EUR_MAP.PRODUCT_NAME, 'N/A'))        AS PRODUCT_NAME,
+        MAX(NVL(SALES_T.GLBL_BASE_ITEM_DESC, 'N/A')) AS PRODUCT_NAME_GLBL
+      FROM
+        (SELECT BASE_7_ITEM_NO     AS SKU,
+          MAX(GLBL_BUS_LN_DESC)    AS BUS_LINE,
+          MAX(GLBL_BASE_ITEM_DESC) AS GLBL_BASE_ITEM_DESC
+        FROM ITEM_DIM_CORR
+        GROUP BY BASE_7_ITEM_NO
+        ) SALES_T,
+        DWSEAI01.EUR_MKTG_INPUT_RAW EUR_MAP
+      WHERE SALES_T.SKU =EUR_MAP.SKU(+)
+      GROUP BY SALES_T.SKU
+      ),
+      OMS_MAIN AS
+      (SELECT FACT_T.ORD_MO_YR_KEY_NO     AS YEARMONTH,
+        ITM_T.GLBL_BUS_LN_DESC            AS BUS_LINE,
+        TRIM(ITM_T.GLBL_CTGRY_DESC)       AS ITEM_CATEGORY,
+        TRIM(ITM_T.GLBL_SUB_CTGRY_DESC)   AS ITEM_SUBCATEGORY,
+        ITM_T.GLBL_PRDCT_GRP_DESC         AS P_GROUP,
+        ITM_T.GLBL_PRDCT_FMLY_DESC        AS FAMILY,
+        ITM_T.GLBL_BRAND_DESC             AS BRAND,
+        ITM_T.GLBL_SUB_BRAND_DESC         AS SUB_BRAND,
+        ITM_T.BASE_7_ITEM_NO              AS SKU,
+        EUR_ITM_T.BUSINESS_LINE           AS BUS_LINE_EUR,
+        EUR_ITM_T.BRAND_GROUP             AS BRAND_EUR,
+        EUR_ITM_T."CATEGORY"              AS ITEM_CATEGORY_EUR,
+        EUR_ITM_T.SUB_CATEGORY            AS ITEM_SUBCATEGORY_EUR,
+        EUR_ITM_T.PRODUCT_FAMILY          AS FAMILY_EUR,
+        EUR_ITM_T.PRODUCT_NAME            AS PRODUCT_NAME_EUR,
+        TRIM(EUR_ITM_T.PRODUCT_NAME_GLBL) AS PRODUCT_NAME_GLBL,
+        IMC_KEY_NO,
+        SUM(PV_LC_AMT) AS PV,
+        SUM(BV_USD)    AS BV_USD,
+        SUM(USD)       AS USD,
+        SUM(
+        CASE
+          WHEN PV_LC_AMT>0
+          THEN ORD_QTY
+          ELSE 0
+        END) AS OMS_UNIT_CNT
+      FROM
+        (SELECT *
+        FROM DWSEAI01.DEMAND_SALES_DET_2021 T0
+        WHERE ORD_MO_YR_KEY_NO >= YM_START
+        AND ORD_MO_YR_KEY_NO    < = YM_END
+        AND OPER_CNTRY_KEY_NO  IN (6,8,10,11,13,14,16,17,18,23,27,29,30,32,34,37,39,41,42,44,45,46,47,48,52,54,56,57,59,60,74, 75,76,114,134,5,26)
+        ) FACT_T,
+        ITEM_DIM_CORR ITM_T,
+        EUR_MKTG_INPUT EUR_ITM_T
+      WHERE ITM_T.CNTRY_KEY_NO IN (6,8,10,11,13,14,16,17,18,23,27 ,29,30,32,34,37,39,41,42,44,45,46,47,48,52,54,56,57,59,60,74, 75,76,114,134,5,26)
+      AND ITM_T.ITEM_KEY_NO     =FACT_T.ORD_ITEM_KEY_NO
+      AND ITM_T.BASE_7_ITEM_NO  =EUR_ITM_T.SKU(+)
+      AND PV_LC_AMT            <>0
+      GROUP BY ORD_MO_YR_KEY_NO,
+        ITM_T.GLBL_BUS_LN_DESC,
+        TRIM(ITM_T.GLBL_CTGRY_DESC),
+        TRIM(ITM_T.GLBL_SUB_CTGRY_DESC),
+        ITM_T.GLBL_PRDCT_GRP_DESC,
+        ITM_T.GLBL_PRDCT_FMLY_DESC,
+        ITM_T.GLBL_BRAND_DESC,
+        ITM_T.GLBL_SUB_BRAND_DESC,
+        ITM_T.BASE_7_ITEM_NO,
+        EUR_ITM_T.BUSINESS_LINE,
+        EUR_ITM_T.BRAND_GROUP,
+        EUR_ITM_T."CATEGORY",
+        EUR_ITM_T.SUB_CATEGORY,
+        EUR_ITM_T.PRODUCT_FAMILY,
+        EUR_ITM_T.PRODUCT_NAME,
+        TRIM(EUR_ITM_T.PRODUCT_NAME_GLBL),
+        IMC_KEY_NO
+      ),
+      OMS_OLD AS
+      (SELECT T2.*,
+        BL_BUYER_FLAG      /NULLIF(SUM(BL_BUYER_FLAG) OVER(PARTITION BY IMC_KEY_NO, YEARMONTH, BUS_LINE), 0)                 AS BL_BUYER_FLAG_PART,
+        CAT_BUYER_FLAG     /NULLIF(SUM(CAT_BUYER_FLAG) OVER(PARTITION BY IMC_KEY_NO, YEARMONTH, ITEM_CATEGORY, BUS_LINE), 0) AS CAT_BUYER_FLAG_PART,
+        SUBCAT_BUYER_FLAG  /NULLIF(SUM(SUBCAT_BUYER_FLAG) OVER(PARTITION BY IMC_KEY_NO, YEARMONTH, ITEM_SUBCATEGORY), 0)     AS SUBCAT_BUYER_FLAG_PART,
+        P_GROUP_BUYER_FLAG /NULLIF(SUM(P_GROUP_BUYER_FLAG) OVER(PARTITION BY IMC_KEY_NO, YEARMONTH, P_GROUP), 0)             AS P_GROUP_BUYER_FLAG_PART,
+        FAMILY_BUYER_FLAG  /NULLIF(SUM(FAMILY_BUYER_FLAG) OVER(PARTITION BY IMC_KEY_NO, YEARMONTH, FAMILY), 0)               AS FAMILY_BUYER_FLAG_PART,
+        BR_BUYER_FLAG      /NULLIF(SUM(BR_BUYER_FLAG) OVER(PARTITION BY IMC_KEY_NO, YEARMONTH, BRAND), 0)                    AS BR_BUYER_FLAG_PART,
+        S_BR_BUYER_FLAG    /NULLIF(SUM(S_BR_BUYER_FLAG) OVER(PARTITION BY IMC_KEY_NO, YEARMONTH, SUB_BRAND, BRAND), 0)       AS S_BR_BUYER_FLAG_PART
+      FROM
+        (SELECT T1.*,
+          CAST(CAST(YEARMONTH/100 AS INTEGER)*12+mod(YEARMONTH, 100) AS INTEGER) AS YEARMONTH_MONTHS,
+          CASE
+            WHEN SUM(PV) OVER(PARTITION BY IMC_KEY_NO, YEARMONTH, BUS_LINE)>0
+            THEN 1
+            ELSE 0
+          END BL_BUYER_FLAG,
+          CASE
+            WHEN SUM(PV) OVER(PARTITION BY IMC_KEY_NO, YEARMONTH, ITEM_CATEGORY, BUS_LINE)>0
+            THEN 1
+            ELSE 0
+          END CAT_BUYER_FLAG,
+          CASE
+            WHEN SUM(PV) OVER(PARTITION BY IMC_KEY_NO, YEARMONTH, ITEM_SUBCATEGORY)>0
+            THEN 1
+            ELSE 0
+          END SUBCAT_BUYER_FLAG,
+          CASE
+            WHEN SUM(PV) OVER(PARTITION BY IMC_KEY_NO, YEARMONTH, P_GROUP)>0
+            THEN 1
+            ELSE 0
+          END P_GROUP_BUYER_FLAG,
+          CASE
+            WHEN SUM(PV) OVER(PARTITION BY IMC_KEY_NO, YEARMONTH, FAMILY)>0
+            THEN 1
+            ELSE 0
+          END FAMILY_BUYER_FLAG,
+          CASE
+            WHEN SUM(PV) OVER(PARTITION BY IMC_KEY_NO, YEARMONTH, BRAND)>0
+            THEN 1
+            ELSE 0
+          END BR_BUYER_FLAG,
+          CASE
+            WHEN SUM(PV) OVER(PARTITION BY IMC_KEY_NO, YEARMONTH, SUB_BRAND, BRAND)>0
+            THEN 1
+            ELSE 0
+          END S_BR_BUYER_FLAG,
+          CASE
+            WHEN SUM(PV) OVER(PARTITION BY IMC_KEY_NO, YEARMONTH, SKU)>0
+            THEN 1
+            ELSE 0
+          END SKU_BUYER_FLAG,
+          CASE
+            WHEN SUM(PV) OVER(PARTITION BY IMC_KEY_NO, YEARMONTH, BUS_LINE_EUR)>0
+            THEN 1
+            ELSE 0
+          END BL_BUYER_FLAG_EUR,
+          CASE
+            WHEN SUM(PV) OVER(PARTITION BY IMC_KEY_NO, YEARMONTH, BRAND_EUR)>0
+            THEN 1
+            ELSE 0
+          END BR_BUYER_FLAG_EUR,
+          CASE
+            WHEN SUM(PV) OVER(PARTITION BY IMC_KEY_NO, YEARMONTH, ITEM_CATEGORY_EUR)>0
+            THEN 1
+            ELSE 0
+          END CAT_BUYER_FLAG_EUR,
+          CASE
+            WHEN SUM(PV) OVER(PARTITION BY IMC_KEY_NO, YEARMONTH, ITEM_SUBCATEGORY_EUR)>0
+            THEN 1
+            ELSE 0
+          END SUBCAT_BUYER_FLAG_EUR,
+          CASE
+            WHEN SUM(PV) OVER(PARTITION BY IMC_KEY_NO, YEARMONTH, FAMILY_EUR)>0
+            THEN 1
+            ELSE 0
+          END FAMILY_BUYER_FLAG_EUR
+        FROM
+          (SELECT YEARMONTH,
+            BUS_LINE,
+            ITEM_CATEGORY,
+            ITEM_SUBCATEGORY,
+            P_GROUP,
+            FAMILY,
+            BRAND,
+            SUB_BRAND,
+            SKU,
+            BUS_LINE_EUR,
+            BRAND_EUR,
+            ITEM_CATEGORY_EUR,
+            ITEM_SUBCATEGORY_EUR,
+            FAMILY_EUR,
+            PRODUCT_NAME_EUR,
+            PRODUCT_NAME_GLBL,
+            IMC_KEY_NO,
+            SUM(PV)           AS PV,
+            SUM(BV_USD)       AS BV_USD,
+            SUM(USD)          AS USD,
+            SUM(OMS_UNIT_CNT) AS OMS_UNIT_CNT
+          FROM OMS_MAIN
+          GROUP BY YEARMONTH,
+            BUS_LINE,
+            ITEM_CATEGORY,
+            ITEM_SUBCATEGORY,
+            P_GROUP,
+            FAMILY,
+            BRAND,
+            SUB_BRAND,
+            SKU,
+            BUS_LINE_EUR,
+            BRAND_EUR,
+            ITEM_CATEGORY_EUR,
+            ITEM_SUBCATEGORY_EUR,
+            FAMILY_EUR,
+            PRODUCT_NAME_EUR,
+            PRODUCT_NAME_GLBL,
+            IMC_KEY_NO
+          ) T1
+        ) T2
+      )
+    /*Main script*/
+    SELECT *
+    FROM
+      (SELECT SALES_T.YEARMONTH,
+        SALES_T.BUS_LINE,
+        SALES_T.ITEM_CATEGORY,
+        SALES_T.ITEM_SUBCATEGORY,
+        SALES_T.P_GROUP,
+        SALES_T.FAMILY,
+        SALES_T.BRAND,
+        SALES_T.SUB_BRAND,
+        SALES_T.SKU,
+        SALES_T.BUS_LINE_EUR,
+        SALES_T.BRAND_EUR,
+        SALES_T.ITEM_CATEGORY_EUR,
+        SALES_T.ITEM_SUBCATEGORY_EUR,
+        SALES_T.FAMILY_EUR,
+        SALES_T.PRODUCT_NAME_EUR,
+        SALES_T.PRODUCT_NAME_GLBL,
+        SALES_T.IMC_KEY_NO,
+        SN_T.TENURE,
+        SN_T.U35_FLAG,
+        SN_T.COUNTRY,
+        SN_T.GL_SEGMENT,
+        SN_T.SALES_REGION,
+        SN_T.STATE,
+        SN_T.IMC_TYPE,
+        SN_T.DIST_TYPE,
+        SN_T.BV_USD                                                                                                                                                                                                                                                                   AS BV_USD_TTL,
+        SN_T.PV                                                                                                                                                                                                                                                                       AS PV_TTL,
+        SN_T.OMS_UNIT_CNT                                                                                                                                                                                                                                                             AS OMS_UNIT_CNT_TTL,
+        SN_T.BUYER_FLAG                                                                                                                                                                                                                                                               AS BUYER_FLAG_TTL,
+        COUNT(DISTINCT NULLIF(SN_T.BUYER_FLAG, 0)*SN_T.IMC_KEY_NO) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.TENURE, SALES_T.YEARMONTH)                                                AS BUYERS_CNT_TTL,
+        SN_T.R_IMC                                                                                                                                                                                                                                                                    AS R_IMC_TTL,
+        NVL(SALES_T.PV, 0)                                                                                                                                                                                                                                                            AS PV,
+        NVL(SALES_T.BV_USD, 0)                                                                                                                                                                                                                                                        AS BV_USD,
+        NVL(SALES_T.OMS_UNIT_CNT, 0)                                                                                                                                                                                                                                                  AS OMS_UNIT_CNT,
+        NVL(SALES_T.BL_BUYER_FLAG, 0)                                                                                                                                                                                                                                                 AS BL_BUYER_FLAG,
+        NVL(SALES_T.CAT_BUYER_FLAG, 0)                                                                                                                                                                                                                                                AS CAT_BUYER_FLAG,
+        NVL(SALES_T.SUBCAT_BUYER_FLAG, 0)                                                                                                                                                                                                                                             AS SUBCAT_BUYER_FLAG,
+        NVL(SALES_T.BR_BUYER_FLAG, 0)                                                                                                                                                                                                                                                 AS BR_BUYER_FLAG,
+        NVL(SALES_T.S_BR_BUYER_FLAG, 0)                                                                                                                                                                                                                                               AS S_BR_BUYER_FLAG,
+        NVL(SALES_T.P_GROUP_BUYER_FLAG, 0)                                                                                                                                                                                                                                            AS P_GROUP_BUYER_FLAG,
+        NVL(SALES_T.FAMILY_BUYER_FLAG, 0)                                                                                                                                                                                                                                             AS FAMILY_BUYER_FLAG,
+        NVL(SALES_T.SKU_BUYER_FLAG, 0)                                                                                                                                                                                                                                                AS SKU_BUYER_FLAG,
+        COUNT(DISTINCT NULLIF(SALES_T.SKU_BUYER_FLAG, 0)*SALES_T.IMC_KEY_NO) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.TENURE, SALES_T.YEARMONTH, SALES_T.SKU)                         AS SKU_BUYERS_CNT,
+        SUM(NVL(SALES_T.PV, 0)) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.TENURE, SALES_T.YEARMONTH, BUS_LINE_EUR)                                                                     AS BL_PV_EUR,
+        SUM(NVL(SALES_T.PV, 0)) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.TENURE, SALES_T.YEARMONTH, BRAND_EUR)                                                                        AS BR_PV_EUR,
+        SUM(NVL(SALES_T.PV, 0)) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.TENURE, SALES_T.YEARMONTH, ITEM_CATEGORY_EUR)                                                                AS CAT_PV_EUR,
+        SUM(NVL(SALES_T.PV, 0)) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.TENURE, SALES_T.YEARMONTH, ITEM_SUBCATEGORY_EUR)                                                             AS SUBCAT_PV_EUR,
+        SUM(NVL(SALES_T.PV, 0)) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.TENURE, SALES_T.YEARMONTH, FAMILY_EUR)                                                                       AS FAMILY_PV_EUR,
+        SUM(NVL(SALES_T.PV, 0)) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.TENURE, SALES_T.YEARMONTH)                                                                                   AS TTL_PV_EUR,
+        COUNT(DISTINCT NULLIF(SALES_T.BL_BUYER_FLAG_EUR, 0)    *SALES_T.IMC_KEY_NO) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.TENURE, SALES_T.YEARMONTH, SALES_T.BUS_LINE_EUR)         AS BL_BUYERS_CNT_EUR,
+        COUNT(DISTINCT NULLIF(SALES_T.BR_BUYER_FLAG_EUR, 0)    *SALES_T.IMC_KEY_NO) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.TENURE, SALES_T.YEARMONTH, SALES_T.BRAND_EUR)            AS BR_BUYERS_CNT_EUR,
+        COUNT(DISTINCT NULLIF(SALES_T.CAT_BUYER_FLAG_EUR, 0)   *SALES_T.IMC_KEY_NO) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.TENURE, SALES_T.YEARMONTH, SALES_T.ITEM_CATEGORY_EUR)    AS CAT_BUYERS_CNT_EUR,
+        COUNT(DISTINCT NULLIF(SALES_T.SUBCAT_BUYER_FLAG_EUR, 0)*SALES_T.IMC_KEY_NO) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.TENURE, SALES_T.YEARMONTH, SALES_T.ITEM_SUBCATEGORY_EUR) AS SUBCAT_BUYERS_CNT_EUR,
+        COUNT(DISTINCT NULLIF(SALES_T.FAMILY_BUYER_FLAG_EUR, 0)*SALES_T.IMC_KEY_NO) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.TENURE, SALES_T.YEARMONTH, SALES_T.FAMILY_EUR)           AS FAMILY_BUYERS_CNT_EUR,
+        NVL(SALES_T.BL_BUYER_FLAG, 0)                          *
+        CASE
+          WHEN ROUND(SUM(SALES_T.BL_BUYER_FLAG_PART) OVER(PARTITION BY SALES_T.IMC_KEY_NO, SALES_T.BUS_LINE ORDER BY CAST(SALES_T.YEARMONTH_MONTHS AS INTEGER) RANGE BETWEEN 2 PRECEDING AND CURRENT ROW))>1
+          THEN 1
+          ELSE 0
+        END AS R_IMC_BL,
+        NVL(SALES_T.CAT_BUYER_FLAG, 0) *
+        CASE
+          WHEN ROUND(SUM(SALES_T.CAT_BUYER_FLAG_PART) OVER(PARTITION BY SALES_T.IMC_KEY_NO, SALES_T.ITEM_CATEGORY, SALES_T.BUS_LINE ORDER BY CAST(SALES_T.YEARMONTH_MONTHS AS INTEGER) RANGE BETWEEN 2 PRECEDING AND CURRENT ROW))>1
+          THEN 1
+          ELSE 0
+        END AS R_IMC_CAT,
+        NVL(SALES_T.SUBCAT_BUYER_FLAG, 0) *
+        CASE
+          WHEN ROUND(SUM(SALES_T.SUBCAT_BUYER_FLAG_PART) OVER(PARTITION BY SALES_T.IMC_KEY_NO, SALES_T.ITEM_SUBCATEGORY ORDER BY CAST(SALES_T.YEARMONTH_MONTHS AS INTEGER) RANGE BETWEEN 2 PRECEDING AND CURRENT ROW))>1
+          THEN 1
+          ELSE 0
+        END AS R_IMC_SUBCAT,
+        NVL(SALES_T.P_GROUP_BUYER_FLAG, 0) *
+        CASE
+          WHEN ROUND(SUM(SALES_T.P_GROUP_BUYER_FLAG_PART) OVER(PARTITION BY SALES_T.IMC_KEY_NO, SALES_T.P_GROUP ORDER BY CAST(SALES_T.YEARMONTH_MONTHS AS INTEGER) RANGE BETWEEN 2 PRECEDING AND CURRENT ROW))>1
+          THEN 1
+          ELSE 0
+        END AS R_IMC_P_GROUP,
+        NVL(SALES_T.FAMILY_BUYER_FLAG, 0) *
+        CASE
+          WHEN ROUND(SUM(SALES_T.FAMILY_BUYER_FLAG_PART) OVER(PARTITION BY SALES_T.IMC_KEY_NO, SALES_T.FAMILY ORDER BY CAST(SALES_T.YEARMONTH_MONTHS AS INTEGER) RANGE BETWEEN 2 PRECEDING AND CURRENT ROW))>1
+          THEN 1
+          ELSE 0
+        END AS R_IMC_FAMILY,
+        NVL(SALES_T.BR_BUYER_FLAG, 0) *
+        CASE
+          WHEN ROUND(SUM(SALES_T.BR_BUYER_FLAG_PART) OVER(PARTITION BY SALES_T.IMC_KEY_NO, SALES_T.BRAND ORDER BY CAST(SALES_T.YEARMONTH_MONTHS AS INTEGER) RANGE BETWEEN 2 PRECEDING AND CURRENT ROW))>1
+          THEN 1
+          ELSE 0
+        END AS R_IMC_BR,
+        NVL(SALES_T.S_BR_BUYER_FLAG, 0) *
+        CASE
+          WHEN ROUND(SUM(SALES_T.S_BR_BUYER_FLAG_PART) OVER(PARTITION BY SALES_T.IMC_KEY_NO, SALES_T.SUB_BRAND, SALES_T.BRAND ORDER BY CAST(SALES_T.YEARMONTH_MONTHS AS INTEGER) RANGE BETWEEN 2 PRECEDING AND CURRENT ROW))>1
+          THEN 1
+          ELSE 0
+        END                 AS R_IMC_S_BR,
+        NVL(SALES_T.USD, 0) AS USD
+      FROM OMS_OLD SALES_T
+      LEFT JOIN
+        (SELECT T0.*,
+          CASE CAST(T0.APPL_DT/100 AS INTEGER)
+            WHEN T0.YEARMONTH
+            THEN 1
+            ELSE 0
+          END AS TENURE
+        FROM DWSEAI01.OMS_TEMP_RMS_PART_2021 T0
+        ) SN_T
+      ON SALES_T.YEARMONTH  =SN_T.YEARMONTH
+      AND SALES_T.IMC_KEY_NO=SN_T.IMC_KEY_NO
+      ) T00
+    WHERE YEARMONTH = YM_END
+    AND COUNTRY    IS NOT NULL
+      ) s;
+    COMMIT;
+  END LOOP;
+END;
