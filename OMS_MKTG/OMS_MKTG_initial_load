@@ -1,0 +1,375 @@
+/*Initial load of DWSEAI01.OMS_MKTG_2021 FROM DWSEAI01.OMS_MKTG_YEMP_2021, for 200710 - 201302*/
+DECLARE
+  YM_FOCUS NUMBER:=0;
+BEGIN
+  FOR i IN 24094..24158 /*From 200710 till 201302*/
+  LOOP
+    /*Loop counter in YEARMONTH_MONTHS*/
+    YM_FOCUS:=DWSEAI01.YMM2YM(i);
+    /*DWSEAI01.YMM2YM converts YEARMONTH_MONTHS to YEARMONTH*/
+INSERT /*+ append parallel(t,32)*/
+INTO DWSEAI01.OMS_MKTG_2021 t
+SELECT
+  /*+ parallel(s,32)*/
+  *
+FROM
+  (WITH OMS_MKTG_TTL AS
+  (SELECT
+    /*+materialize*/
+    T10.*,
+    T20.BUYERS_CNT_TTL
+  FROM
+    (SELECT T1.*,
+      T2.BUS_LINE,
+      T2.ITEM_CATEGORY,
+      T2.SUB_BRAND,
+      T2.BRAND
+    FROM
+      (SELECT YEARMONTH,
+        TENURE,
+        U35_FLAG,
+        COUNTRY,
+        GL_SEGMENT,
+        SALES_REGION,
+        STATE,
+        IMC_TYPE,
+        DIST_TYPE
+      FROM DWSEAI01.OMS_MKTG_TEMP_2021
+      WHERE YEARMONTH = YM_FOCUS
+      GROUP BY YEARMONTH,
+        TENURE,
+        U35_FLAG,
+        COUNTRY,
+        GL_SEGMENT,
+        SALES_REGION,
+        STATE,
+        IMC_TYPE,
+        DIST_TYPE
+      ) T1,
+      (SELECT YEARMONTH,
+        BUS_LINE,
+        ITEM_CATEGORY,
+        SUB_BRAND,
+        BRAND
+      FROM DWSEAI01.OMS_MKTG_TEMP_2021
+      GROUP BY YEARMONTH,
+        BUS_LINE,
+        ITEM_CATEGORY,
+        SUB_BRAND,
+        BRAND
+      ) T2
+    WHERE T1.YEARMONTH=T2.YEARMONTH
+    ) T10,
+    (SELECT YEARMONTH,
+      TENURE,
+      U35_FLAG,
+      COUNTRY,
+      GL_SEGMENT,
+      SALES_REGION,
+      STATE,
+      IMC_TYPE,
+      DIST_TYPE,
+      AVG(BUYERS_CNT_TTL) AS BUYERS_CNT_TTL
+    FROM DWSEAI01.OMS_MKTG_TEMP_2021
+    GROUP BY YEARMONTH,
+      TENURE,
+      U35_FLAG,
+      COUNTRY,
+      GL_SEGMENT,
+      SALES_REGION,
+      STATE,
+      IMC_TYPE,
+      DIST_TYPE
+    ) T20
+  WHERE T10.YEARMONTH =T20.YEARMONTH
+  AND T10.TENURE=T20.TENURE
+  AND T10.U35_FLAG    =T20.U35_FLAG
+  AND T10.COUNTRY     =T20.COUNTRY
+  AND T10.GL_SEGMENT  =T20.GL_SEGMENT
+  AND T10.SALES_REGION=T20.SALES_REGION
+  AND T10.STATE       =T20.STATE
+  AND T10.IMC_TYPE    =T20.IMC_TYPE
+  AND T10.DIST_TYPE   =T20.DIST_TYPE
+  ),
+  /*OMS_MKTG_SALES*/
+  OMS_MKTG_SALES AS
+  (SELECT
+    /*+materialize*/
+    T1.YEARMONTH,
+    T1.TENURE,
+    T1.U35_FLAG,
+    T1.COUNTRY,
+    T1.GL_SEGMENT,
+    T1.SALES_REGION,
+    T1.STATE,
+    T1.IMC_TYPE,
+    T1.DIST_TYPE,
+    T1.BUS_LINE,
+    T1.ITEM_CATEGORY,
+    T1.SUB_BRAND,
+    T1.BRAND,
+    AVG(T1.BUYERS_CNT_TTL)  AS BUYERS_CNT_TTL,
+    AVG(T2.BL_BUYER_CNT)    AS BL_BUYER_CNT,
+    AVG(T2.R_IMC_BL)        AS R_IMC_BL,
+    AVG(T2.CAT_BUYER_CNT)   AS CAT_BUYER_CNT,
+    AVG(T2.R_IMC_CAT)       AS R_IMC_CAT,
+    AVG(T2.S_BR_BUYER_CNT)  AS S_BR_BUYER_CNT,
+    AVG(T2.R_IMC_S_BR)      AS R_IMC_S_BR,
+    AVG(T2.BR_BUYER_CNT)    AS BR_BUYER_CNT,
+    AVG(T2.R_IMC_BR)        AS R_IMC_BR,
+    SUM(T2.PV)              AS PV,
+    SUM(T2.BV_USD)          AS BV_USD,
+    SUM(T2.OMS_UNIT_CNT)    AS OMS_UNIT_CNT,
+    SUM(T2.USD)          AS USD
+  FROM OMS_MKTG_TTL T1,
+    (SELECT YEARMONTH,
+      TENURE,
+      U35_FLAG,
+      COUNTRY,
+      GL_SEGMENT,
+      SALES_REGION,
+      STATE,
+      IMC_TYPE,
+      DIST_TYPE,
+      BUS_LINE,
+      ITEM_CATEGORY,
+      SUB_BRAND,
+      BRAND,
+      COUNT(DISTINCT IMC_KEY_NO*BL_BUYER_FLAG) OVER(PARTITION BY YEARMONTH, TENURE, U35_FLAG, COUNTRY, GL_SEGMENT, SALES_REGION, STATE, IMC_TYPE, DIST_TYPE, BUS_LINE)                 AS BL_BUYER_CNT,
+      COUNT(DISTINCT IMC_KEY_NO*R_IMC_BL) OVER(PARTITION BY YEARMONTH, TENURE, U35_FLAG, COUNTRY, GL_SEGMENT, SALES_REGION, STATE, IMC_TYPE, DIST_TYPE, BUS_LINE)                      AS R_IMC_BL,
+      COUNT(DISTINCT IMC_KEY_NO*CAT_BUYER_FLAG) OVER(PARTITION BY YEARMONTH, TENURE, U35_FLAG, COUNTRY, GL_SEGMENT, SALES_REGION, STATE, IMC_TYPE, DIST_TYPE, ITEM_CATEGORY, BUS_LINE) AS CAT_BUYER_CNT,
+      COUNT(DISTINCT IMC_KEY_NO*R_IMC_CAT) OVER(PARTITION BY YEARMONTH, TENURE, U35_FLAG, COUNTRY, GL_SEGMENT, SALES_REGION, STATE, IMC_TYPE, DIST_TYPE, ITEM_CATEGORY, BUS_LINE)      AS R_IMC_CAT,
+      COUNT(DISTINCT IMC_KEY_NO*S_BR_BUYER_FLAG) OVER(PARTITION BY YEARMONTH, TENURE, U35_FLAG, COUNTRY, GL_SEGMENT, SALES_REGION, STATE, IMC_TYPE, DIST_TYPE, SUB_BRAND, BRAND)       AS S_BR_BUYER_CNT,
+      COUNT(DISTINCT IMC_KEY_NO*R_IMC_S_BR) OVER(PARTITION BY YEARMONTH, TENURE, U35_FLAG, COUNTRY, GL_SEGMENT, SALES_REGION, STATE, IMC_TYPE, DIST_TYPE, SUB_BRAND, BRAND)            AS R_IMC_S_BR,
+      COUNT(DISTINCT IMC_KEY_NO*BR_BUYER_FLAG) OVER(PARTITION BY YEARMONTH, TENURE, U35_FLAG, COUNTRY, GL_SEGMENT, SALES_REGION, STATE, IMC_TYPE, DIST_TYPE, BRAND)                    AS BR_BUYER_CNT,
+      COUNT(DISTINCT IMC_KEY_NO*R_IMC_BR) OVER(PARTITION BY YEARMONTH, TENURE, U35_FLAG, COUNTRY, GL_SEGMENT, SALES_REGION, STATE, IMC_TYPE, DIST_TYPE, BRAND)                         AS R_IMC_BR,
+      PV                                                                                                                                                                                                AS PV,
+      BV_USD                                                                                                                                                                                            AS BV_USD,
+      OMS_UNIT_CNT                                                                                                                                                                                      AS OMS_UNIT_CNT,
+            USD                                                                                                                                                                                            AS USD
+    FROM DWSEAI01.OMS_MKTG_TEMP_2021
+    WHERE YEARMONTH = YM_FOCUS
+    ) T2
+  WHERE T1.YEARMONTH   =T2.YEARMONTH(+)
+  AND T1.TENURE  =T2.TENURE(+)
+  AND T1.U35_FLAG      =T2.U35_FLAG(+)
+  AND T1.COUNTRY       =T2.COUNTRY(+)
+  AND T1.GL_SEGMENT    =T2.GL_SEGMENT(+)
+  AND T1.SALES_REGION  =T2.SALES_REGION(+)
+  AND T1.STATE         =T2.STATE(+)
+  AND T1.IMC_TYPE      =T2.IMC_TYPE(+)
+  AND T1.DIST_TYPE     =T2.DIST_TYPE(+)
+  AND T1.BUS_LINE      =T2.BUS_LINE(+)
+  AND T1.ITEM_CATEGORY =T2.ITEM_CATEGORY(+)
+  AND T1.SUB_BRAND     =T2.SUB_BRAND(+)
+  AND T1.BRAND         =T2.BRAND(+)
+  AND T1.COUNTRY    IS NOT NULL
+  GROUP BY T1.YEARMONTH,
+    T1.TENURE,
+    T1.U35_FLAG,
+    T1.COUNTRY,
+    T1.GL_SEGMENT,
+    T1.SALES_REGION,
+    T1.STATE,
+    T1.IMC_TYPE,
+    T1.DIST_TYPE,
+    T1.BUS_LINE,
+    T1.ITEM_CATEGORY,
+    T1.SUB_BRAND,
+    T1.BRAND
+  )
+/*Main script*/
+SELECT YEARMONTH,
+  TENURE,
+  U35_FLAG,
+  COUNTRY,
+  GL_SEGMENT,
+  SALES_REGION,
+  STATE,
+  IMC_TYPE,
+  DIST_TYPE,
+  1                                         AS "LEVEL",
+  'NONE'                                    AS BUS_LINE,
+  'NONE'                                    AS "CATEGORY",
+  'NONE'                                    AS BRAND,
+  'NONE'                                    AS SUB_BRAND,
+  AVG(BUYERS_CNT_TTL)                       AS BUYERS_CNT_TTL,
+  AVG(BUYERS_CNT_TTL)                       AS BUYERS_CNT,
+  COUNT(DISTINCT IMC_KEY_NO*R_IMC_TTL)      AS R_IMC_CNT,
+  SUM(PV)                                   AS PV,
+  SUM(BV_USD)                               AS BV_USD,
+  SUM(OMS_UNIT_CNT)                         AS OMS_UNIT_CNT,
+  SUM(USD)                               AS USD
+FROM DWSEAI01.OMS_MKTG_TEMP_2021
+WHERE COUNTRY IS NOT NULL
+AND YEARMONTH    = 202012
+GROUP BY YEARMONTH,
+  TENURE,
+  U35_FLAG,
+  COUNTRY,
+  GL_SEGMENT,
+  SALES_REGION,
+  STATE,
+  IMC_TYPE,
+  DIST_TYPE,
+  1,
+  'NONE',
+  'NONE',
+  'NONE',
+  'NONE'
+/*Business Line*/
+UNION ALL
+SELECT YEARMONTH,
+  TENURE,
+  U35_FLAG,
+  COUNTRY,
+  GL_SEGMENT,
+  SALES_REGION,
+  STATE,
+  IMC_TYPE,
+  DIST_TYPE,
+  2 AS "LEVEL",
+  BUS_LINE,
+  'NONE'              AS "CATEGORY",
+  'NONE'              AS BRAND,
+  'NONE'              AS SUB_BRAND,
+  AVG(BUYERS_CNT_TTL) AS BUYERS_CNT_TTL,
+  AVG(BL_BUYER_CNT)   AS BUYERS_CNT,
+  AVG(R_IMC_BL)       AS R_IMC_CNT,
+  SUM(PV)             AS PV,
+  SUM(BV_USD)         AS BV_USD,
+  SUM(OMS_UNIT_CNT)   AS OMS_UNIT_CNT,
+  SUM(USD)                               AS USD
+FROM OMS_MKTG_SALES
+GROUP BY YEARMONTH,
+  TENURE,
+  U35_FLAG,
+  COUNTRY,
+  GL_SEGMENT,
+  SALES_REGION,
+  STATE,
+  IMC_TYPE,
+  DIST_TYPE,
+  2,
+  BUS_LINE,
+  'NONE',
+  'NONE',
+  'NONE'
+/*Category*/
+UNION ALL
+SELECT YEARMONTH,
+  TENURE,
+  U35_FLAG,
+  COUNTRY,
+  GL_SEGMENT,
+  SALES_REGION,
+  STATE,
+  IMC_TYPE,
+  DIST_TYPE,
+  3 AS "LEVEL",
+  BUS_LINE,
+  ITEM_CATEGORY       AS "CATEGORY",
+  'NONE'              AS BRAND,
+  'NONE'              AS SUB_BRAND,
+  AVG(BUYERS_CNT_TTL) AS BUYERS_CNT_TTL,
+  AVG(CAT_BUYER_CNT)  AS BUYERS_CNT,
+  AVG(R_IMC_CAT)      AS R_IMC_CNT,
+  SUM(PV)             AS PV,
+  SUM(BV_USD)         AS BV_USD,
+  SUM(OMS_UNIT_CNT)   AS OMS_UNIT_CNT,
+  SUM(USD)                               AS USD
+FROM OMS_MKTG_SALES
+GROUP BY YEARMONTH,
+  TENURE,
+  U35_FLAG,
+  COUNTRY,
+  GL_SEGMENT,
+  SALES_REGION,
+  STATE,
+  IMC_TYPE,
+  DIST_TYPE,
+  3,
+  BUS_LINE,
+  ITEM_CATEGORY,
+  'NONE',
+  'NONE'
+/*Brand*/
+UNION ALL
+SELECT YEARMONTH,
+  TENURE,
+  U35_FLAG,
+  COUNTRY,
+  GL_SEGMENT,
+  SALES_REGION,
+  STATE,
+  IMC_TYPE,
+  DIST_TYPE,
+  4                   AS "LEVEL",
+  'NONE'              AS BUS_LINE,
+  'NONE'              AS "CATEGORY",
+  BRAND               AS BRAND,
+  'NONE'              AS SUB_BRAND,
+  AVG(BUYERS_CNT_TTL) AS BUYERS_CNT_TTL,
+  AVG(BR_BUYER_CNT)   AS BUYERS_CNT,
+  AVG(R_IMC_BR)       AS R_IMC_CNT,
+  SUM(PV)             AS PV,
+  SUM(BV_USD)         AS BV_USD,
+  SUM(OMS_UNIT_CNT)   AS OMS_UNIT_CNT,
+  SUM(USD)                               AS USD
+FROM OMS_MKTG_SALES
+GROUP BY YEARMONTH,
+  TENURE,
+  U35_FLAG,
+  COUNTRY,
+  GL_SEGMENT,
+  SALES_REGION,
+  STATE,
+  IMC_TYPE,
+  DIST_TYPE,
+  4,
+  'NONE',
+  'NONE',
+  BRAND,
+  'NONE'
+/*Sub_Brand*/
+UNION ALL
+SELECT YEARMONTH,
+  TENURE,
+  U35_FLAG,
+  COUNTRY,
+  GL_SEGMENT,
+  SALES_REGION,
+  STATE,
+  IMC_TYPE,
+  DIST_TYPE,
+  5                    AS "LEVEL",
+  'NONE'               AS BUS_LINE,
+  'NONE'               AS "CATEGORY",
+  BRAND                AS BRAND,
+  SUB_BRAND            AS SUB_BRAND,
+  AVG(BUYERS_CNT_TTL)  AS BUYERS_CNT_TTL,
+  AVG(S_BR_BUYER_CNT)  AS BUYERS_CNT,
+  AVG(R_IMC_S_BR)      AS R_IMC_CNT,
+  SUM(PV)              AS PV,
+  SUM(BV_USD)          AS BV_USD,
+  SUM(OMS_UNIT_CNT)    AS OMS_UNIT_CNT,
+  SUM(USD)                               AS USD
+FROM OMS_MKTG_SALES
+GROUP BY YEARMONTH,
+  TENURE,
+  U35_FLAG,
+  COUNTRY,
+  GL_SEGMENT,
+  SALES_REGION,
+  STATE,
+  IMC_TYPE,
+  DIST_TYPE,
+  5,
+  'NONE',
+  'NONE',
+  BRAND,
+  SUB_BRAND
+  ) s;
+  COMMIT;
+  END LOOP;
+END;
