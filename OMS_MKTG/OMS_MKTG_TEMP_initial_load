@@ -1,8 +1,10 @@
+/*FROM 201301 till 202012)*/
 DECLARE
   YM_START NUMBER:=0;
   YM_END   NUMBER:=0;
 BEGIN
-  FOR i IN 24146..24168/*From 201202 till 201312*/
+  FOR i IN 24157..24252
+/*From 201202 till 201312*/
   LOOP
     /*From 200710 till 201012*/
     /*Loop counter in YEARMONTH_MONTHS*/
@@ -423,6 +425,7 @@ BEGIN
         SALES_T.PRODUCT_NAME_EUR,
         SALES_T.PRODUCT_NAME_GLBL,
         SALES_T.IMC_KEY_NO,
+        SN_T.TENURE,
         SN_T.NEW_APP_FLAG,
         SN_T.U35_FLAG,
         SN_T.COUNTRY,
@@ -435,7 +438,7 @@ BEGIN
         SN_T.PV                                                                                                                                                                                                                                                                       AS PV_TTL,
         SN_T.OMS_UNIT_CNT                                                                                                                                                                                                                                                             AS OMS_UNIT_CNT_TTL,
         SN_T.BUYER_FLAG                                                                                                                                                                                                                                                               AS BUYER_FLAG_TTL,
-        COUNT(DISTINCT NULLIF(SN_T.BUYER_FLAG, 0)*SN_T.IMC_KEY_NO) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.NEW_APP_FLAG, SALES_T.YEARMONTH)                                                AS BUYERS_CNT_TTL,
+        COUNT(DISTINCT NULLIF(SN_T.BUYER_FLAG, 0)*SN_T.IMC_KEY_NO) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.NEW_APP_FLAG, SN_T.TENURE, SALES_T.YEARMONTH)                                                AS BUYERS_CNT_TTL,
         SN_T.R_IMC                                                                                                                                                                                                                                                                    AS R_IMC_TTL,
         NVL(SALES_T.PV, 0)                                                                                                                                                                                                                                                            AS PV,
         NVL(SALES_T.BV_USD, 0)                                                                                                                                                                                                                                                        AS BV_USD,
@@ -448,18 +451,18 @@ BEGIN
         NVL(SALES_T.P_GROUP_BUYER_FLAG, 0)                                                                                                                                                                                                                                            AS P_GROUP_BUYER_FLAG,
         NVL(SALES_T.FAMILY_BUYER_FLAG, 0)                                                                                                                                                                                                                                             AS FAMILY_BUYER_FLAG,
         NVL(SALES_T.SKU_BUYER_FLAG, 0)                                                                                                                                                                                                                                                AS SKU_BUYER_FLAG,
-        COUNT(DISTINCT NULLIF(SALES_T.SKU_BUYER_FLAG, 0)*SALES_T.IMC_KEY_NO) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.NEW_APP_FLAG, SALES_T.YEARMONTH, SALES_T.SKU)                         AS SKU_BUYERS_CNT,
-        SUM(NVL(SALES_T.PV, 0)) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.NEW_APP_FLAG, SALES_T.YEARMONTH, BUS_LINE_EUR)                                                                     AS BL_PV_EUR,
-        SUM(NVL(SALES_T.PV, 0)) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.NEW_APP_FLAG, SALES_T.YEARMONTH, BRAND_EUR)                                                                        AS BR_PV_EUR,
-        SUM(NVL(SALES_T.PV, 0)) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.NEW_APP_FLAG, SALES_T.YEARMONTH, ITEM_CATEGORY_EUR)                                                                AS CAT_PV_EUR,
-        SUM(NVL(SALES_T.PV, 0)) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.NEW_APP_FLAG, SALES_T.YEARMONTH, ITEM_SUBCATEGORY_EUR)                                                             AS SUBCAT_PV_EUR,
-        SUM(NVL(SALES_T.PV, 0)) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.NEW_APP_FLAG, SALES_T.YEARMONTH, FAMILY_EUR)                                                                       AS FAMILY_PV_EUR,
-        SUM(NVL(SALES_T.PV, 0)) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.NEW_APP_FLAG, SALES_T.YEARMONTH)                                                                                   AS TTL_PV_EUR,
-        COUNT(DISTINCT NULLIF(SALES_T.BL_BUYER_FLAG_EUR, 0)    *SALES_T.IMC_KEY_NO) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.NEW_APP_FLAG, SALES_T.YEARMONTH, SALES_T.BUS_LINE_EUR)         AS BL_BUYERS_CNT_EUR,
-        COUNT(DISTINCT NULLIF(SALES_T.BR_BUYER_FLAG_EUR, 0)    *SALES_T.IMC_KEY_NO) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.NEW_APP_FLAG, SALES_T.YEARMONTH, SALES_T.BRAND_EUR)            AS BR_BUYERS_CNT_EUR,
-        COUNT(DISTINCT NULLIF(SALES_T.CAT_BUYER_FLAG_EUR, 0)   *SALES_T.IMC_KEY_NO) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.NEW_APP_FLAG, SALES_T.YEARMONTH, SALES_T.ITEM_CATEGORY_EUR)    AS CAT_BUYERS_CNT_EUR,
-        COUNT(DISTINCT NULLIF(SALES_T.SUBCAT_BUYER_FLAG_EUR, 0)*SALES_T.IMC_KEY_NO) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.NEW_APP_FLAG, SALES_T.YEARMONTH, SALES_T.ITEM_SUBCATEGORY_EUR) AS SUBCAT_BUYERS_CNT_EUR,
-        COUNT(DISTINCT NULLIF(SALES_T.FAMILY_BUYER_FLAG_EUR, 0)*SALES_T.IMC_KEY_NO) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.NEW_APP_FLAG, SALES_T.YEARMONTH, SALES_T.FAMILY_EUR)           AS FAMILY_BUYERS_CNT_EUR,
+        COUNT(DISTINCT NULLIF(SALES_T.SKU_BUYER_FLAG, 0)*SALES_T.IMC_KEY_NO) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.NEW_APP_FLAG, SN_T.TENURE, SALES_T.YEARMONTH, SALES_T.SKU)                         AS SKU_BUYERS_CNT,
+        SUM(NVL(SALES_T.PV, 0)) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.NEW_APP_FLAG, SN_T.TENURE, SALES_T.YEARMONTH, BUS_LINE_EUR)                                                                     AS BL_PV_EUR,
+        SUM(NVL(SALES_T.PV, 0)) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.NEW_APP_FLAG, SN_T.TENURE, SALES_T.YEARMONTH, BRAND_EUR)                                                                        AS BR_PV_EUR,
+        SUM(NVL(SALES_T.PV, 0)) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.NEW_APP_FLAG, SN_T.TENURE, SALES_T.YEARMONTH, ITEM_CATEGORY_EUR)                                                                AS CAT_PV_EUR,
+        SUM(NVL(SALES_T.PV, 0)) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.NEW_APP_FLAG, SN_T.TENURE, SALES_T.YEARMONTH, ITEM_SUBCATEGORY_EUR)                                                             AS SUBCAT_PV_EUR,
+        SUM(NVL(SALES_T.PV, 0)) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.NEW_APP_FLAG, SN_T.TENURE, SALES_T.YEARMONTH, FAMILY_EUR)                                                                       AS FAMILY_PV_EUR,
+        SUM(NVL(SALES_T.PV, 0)) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.NEW_APP_FLAG, SN_T.TENURE, SALES_T.YEARMONTH)                                                                                   AS TTL_PV_EUR,
+        COUNT(DISTINCT NULLIF(SALES_T.BL_BUYER_FLAG_EUR, 0)    *SALES_T.IMC_KEY_NO) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.NEW_APP_FLAG, SN_T.TENURE, SALES_T.YEARMONTH, SALES_T.BUS_LINE_EUR)         AS BL_BUYERS_CNT_EUR,
+        COUNT(DISTINCT NULLIF(SALES_T.BR_BUYER_FLAG_EUR, 0)    *SALES_T.IMC_KEY_NO) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.NEW_APP_FLAG, SN_T.TENURE, SALES_T.YEARMONTH, SALES_T.BRAND_EUR)            AS BR_BUYERS_CNT_EUR,
+        COUNT(DISTINCT NULLIF(SALES_T.CAT_BUYER_FLAG_EUR, 0)   *SALES_T.IMC_KEY_NO) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.NEW_APP_FLAG, SN_T.TENURE, SALES_T.YEARMONTH, SALES_T.ITEM_CATEGORY_EUR)    AS CAT_BUYERS_CNT_EUR,
+        COUNT(DISTINCT NULLIF(SALES_T.SUBCAT_BUYER_FLAG_EUR, 0)*SALES_T.IMC_KEY_NO) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.NEW_APP_FLAG, SN_T.TENURE, SALES_T.YEARMONTH, SALES_T.ITEM_SUBCATEGORY_EUR) AS SUBCAT_BUYERS_CNT_EUR,
+        COUNT(DISTINCT NULLIF(SALES_T.FAMILY_BUYER_FLAG_EUR, 0)*SALES_T.IMC_KEY_NO) OVER(PARTITION BY SN_T.COUNTRY, SN_T.GL_SEGMENT, SN_T.SALES_REGION, SN_T.STATE, SN_T.IMC_TYPE, SN_T.DIST_TYPE, SN_T.U35_FLAG, SN_T.NEW_APP_FLAG, SN_T.TENURE, SALES_T.YEARMONTH, SALES_T.FAMILY_EUR)           AS FAMILY_BUYERS_CNT_EUR,
         NVL(SALES_T.BL_BUYER_FLAG, 0)                          *
         CASE
           WHEN ROUND(SUM(SALES_T.BL_BUYER_FLAG_PART) OVER(PARTITION BY SALES_T.IMC_KEY_NO, SALES_T.BUS_LINE ORDER BY CAST(SALES_T.YEARMONTH_MONTHS AS INTEGER) RANGE BETWEEN 2 PRECEDING AND CURRENT ROW))>1
@@ -505,13 +508,8 @@ BEGIN
         NVL(SALES_T.USD, 0) AS USD
       FROM OMS_OLD SALES_T
       LEFT JOIN
-        (SELECT T0.*,
-          CASE CAST(T0.APPL_DT/100 AS INTEGER)
-            WHEN T0.YEARMONTH
-            THEN 1
-            ELSE 0
-          END AS NEW_APP_FLAG
-        FROM DWSEAI01.OMS_TEMP_RMS_PART T0
+        (SELECT *
+        FROM DWSEAI01.OMS_TEMP T0
         ) SN_T
       ON SALES_T.YEARMONTH  =SN_T.YEARMONTH
       AND SALES_T.IMC_KEY_NO=SN_T.IMC_KEY_NO
