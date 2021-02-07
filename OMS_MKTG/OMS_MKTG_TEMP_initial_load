@@ -1,12 +1,9 @@
-/*FROM 201301 till 202012)*/
 DECLARE
   YM_START NUMBER:=0;
   YM_END   NUMBER:=0;
 BEGIN
-  FOR i IN 24157..24252
-/*From 201202 till 201312*/
+  FOR i IN $${IYEARMONTH_MONTHS}$$..$${IYEARMONTH_MONTHS}$$
   LOOP
-    /*From 200710 till 201012*/
     /*Loop counter in YEARMONTH_MONTHS*/
     YM_START:=DWSEAI01.YMM2YM(i-2);
     /*Start of OMS Sales period (3 months including focus month, for R_IMC calculation*/
