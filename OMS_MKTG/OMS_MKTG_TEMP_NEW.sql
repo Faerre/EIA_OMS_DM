@@ -525,3 +525,4 @@ BEGIN
   AND COUNTRY    IS NOT NULL
     ) s;
   COMMIT;
+END;
