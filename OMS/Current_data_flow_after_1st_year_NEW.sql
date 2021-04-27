@@ -523,14 +523,14 @@ BEGIN
       FROM
         (SELECT T0.*,
           CASE
-            WHEN SUM(BUYER_FLAG) OVER (PARTITION BY IMC_KEY_NO, COUNTRY ORDER BY CAST( T0.YEARMONTH_MONTHS AS INTEGER) RANGE BETWEEN 2 PRECEDING AND CURRENT ROW)>=2
+            WHEN SUM(BUYER_FLAG) OVER (PARTITION BY IMC_KEY_NO, IMC_NO, COUNTRY ORDER BY CAST( T0.YEARMONTH_MONTHS AS INTEGER) RANGE BETWEEN 2 PRECEDING AND CURRENT ROW)>=2
             AND BUYER_FLAG                                                                                                                                        =1
             THEN 1
             ELSE 0
           END                                                                                                                                                                                                                            AS R_BUYER_FLAG,
-          T0.YEARMONTH_MONTHS-NVL(NULLIF(MAX(T0.YEARMONTH_MONTHS*BUYER_FLAG) OVER (PARTITION BY IMC_KEY_NO, COUNTRY ORDER BY CAST( T0.YEARMONTH_MONTHS AS INTEGER) RANGE BETWEEN 5 PRECEDING AND CURRENT ROW), 0), YEARMONTH_MONTHS+1)+1 AS RCNCY_CNT,
-          SUM(BUYER_FLAG) OVER (PARTITION BY IMC_KEY_NO, COUNTRY ORDER BY CAST( T0.YEARMONTH_MONTHS AS INTEGER) RANGE BETWEEN 5 PRECEDING AND CURRENT ROW)                                                                               AS FRQNCY_CNT
-        FROM
+          T0.YEARMONTH_MONTHS-NVL(NULLIF(MAX(T0.YEARMONTH_MONTHS*BUYER_FLAG) OVER (PARTITION BY IMC_KEY_NO, IMC_NO, COUNTRY ORDER BY CAST( T0.YEARMONTH_MONTHS AS INTEGER) RANGE BETWEEN 5 PRECEDING AND CURRENT ROW), 0), YEARMONTH_MONTHS+1)+1 AS RCNCY_CNT,
+          SUM(BUYER_FLAG) OVER (PARTITION BY IMC_KEY_NO, IMC_NO, COUNTRY ORDER BY CAST( T0.YEARMONTH_MONTHS AS INTEGER) RANGE BETWEEN 5 PRECEDING AND CURRENT ROW)                                                                               AS FRQNCY_CNT
+         FROM
           (SELECT T00.*,
             CASE
               WHEN NVL(T00.PV, 0)>0
