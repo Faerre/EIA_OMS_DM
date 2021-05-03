@@ -93,7 +93,7 @@ BEGIN
             /*all other who were not identified as Members or Customers are ABOs - I include Employees also there to avoid lost sales, however their amount is very low*/
         END AS IMC_TYPE
       FROM DWSAVR02.DWV00050_IMC_CCYYMM_FACT T1
-      LEFT JOIN DWSAVR02.DWV01021_IMC_MASTER_DIM T2
+      LEFT JOIN (SELECT * FROM DWSAVR02.DWV01021_IMC_MASTER_DIM WHERE NOT(IMC_CNTRY_KEY_NO IN (52,59,60) AND STATUS_KEY_NO NOT IN (21,14))) T2
       ON T1.IMC_KEY_NO =T2.IMC_KEY_NO
       LEFT JOIN DWSEAI01.GPK_HIST_GDW GPK_T
       ON T1.IMC_KEY_NO         = GPK_T.IMC_KEY_NO
@@ -287,7 +287,7 @@ BEGIN
           FACT_T.ACCOUNT_ID             AS IMC_NO,
           MAX(FACT_T.ACCOUNT_TYPE_ORD)  AS IMC_TYPE,
           MAX(COUNTRY_T.CNTRY_SHORT_NM) AS CNTRY_SHORT_NM,
-          /*For use only for identification of country if acciunt is not in Snapshot - maily FOAs*/
+          /*For use only for identification of country if account is not in Snapshot - maily FOAs*/
           SUM(ADJ_LN_PV)      AS PV,
           SUM(ADJ_LN_BV)      AS BV,
           SUM(ADJ_LN_LC_NET)  AS IBO_PRICE_LC_AMT,
