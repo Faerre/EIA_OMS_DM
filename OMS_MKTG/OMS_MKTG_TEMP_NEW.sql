@@ -23,7 +23,7 @@ BEGIN
     FROM
       (SELECT TRIM(SUBSTR(
         CASE
-          WHEN INSTR(REGEXP_REPLACE(SUBSTR(TRIM(ITEM), 4, LENGTH(TRIM(ITEM))                      -3), '[B-Z]', 'A'), 'A')>0
+          WHEN INSTR(REGEXP_REPLACE(SUBSTR(TRIM(ITEM), 5, LENGTH(TRIM(ITEM))                      -3), '[B-Z]', 'A'), 'A')>0
           THEN SUBSTR(TRIM(ITEM), 1, INSTR(REGEXP_REPLACE(SUBSTR(TRIM(ITEM), 4, LENGTH(TRIM(ITEM))-3), '[B-Z]', 'A'), 'A')+ 2)
           ELSE TRIM(ITEM)
         END, 1, 7))                                          AS BASE_7_ITEM_NO,
@@ -31,7 +31,7 @@ BEGIN
         ITEM_REV,
         MAX(ITEM_REV) OVER(PARTITION BY TRIM(SUBSTR(
         CASE
-          WHEN INSTR(REGEXP_REPLACE(SUBSTR(TRIM(ITEM), 4, LENGTH(TRIM(ITEM))                      -3), '[B-Z]', 'A'), 'A')>0
+          WHEN INSTR(REGEXP_REPLACE(SUBSTR(TRIM(ITEM), 5, LENGTH(TRIM(ITEM))                      -3), '[B-Z]', 'A'), 'A')>0
           THEN SUBSTR(TRIM(ITEM), 1, INSTR(REGEXP_REPLACE(SUBSTR(TRIM(ITEM), 4, LENGTH(TRIM(ITEM))-3), '[B-Z]', 'A'), 'A')+ 2)
           ELSE TRIM(ITEM)
         END, 1, 7)), NVL(ITEM_CNTRY_CD, INTGRT_CNTRY_CD)) AS ITEM_REV_MAX,
@@ -58,7 +58,7 @@ BEGIN
       (SELECT CNTRY_KEY_NO,
         TRIM(SUBSTR(
         CASE
-          WHEN instr(regexp_replace(SUBSTR(trim(ITEM_NO), 4, LENGTH(trim(ITEM_NO))                         -3), '[B-Z]', 'A'), 'A')>0
+          WHEN instr(regexp_replace(SUBSTR(trim(ITEM_NO), 5, LENGTH(trim(ITEM_NO))                         -3), '[B-Z]', 'A'), 'A')>0
           THEN SUBSTR(trim(ITEM_NO), 1, instr(regexp_replace(SUBSTR(trim(ITEM_NO), 4, LENGTH(trim(ITEM_NO))-3), '[B-Z]', 'A'), 'A')+ 2)
           ELSE trim(ITEM_NO)
         END, 1, 7)) AS BASE_7_ITEM_NO,
@@ -72,7 +72,7 @@ BEGIN
         GLBL_BASE_ITEM_DESC,
         DENSE_RANK() OVER(PARTITION BY CNTRY_KEY_NO, TRIM(SUBSTR(
         CASE
-          WHEN instr(regexp_replace(SUBSTR(trim(ITEM_NO), 4, LENGTH(trim(ITEM_NO))                         -3), '[B-Z]', 'A'), 'A')>0
+          WHEN instr(regexp_replace(SUBSTR(trim(ITEM_NO), 5, LENGTH(trim(ITEM_NO))                         -3), '[B-Z]', 'A'), 'A')>0
           THEN SUBSTR(trim(ITEM_NO), 1, instr(regexp_replace(SUBSTR(trim(ITEM_NO), 4, LENGTH(trim(ITEM_NO))-3), '[B-Z]', 'A'), 'A')+ 2)
           ELSE trim(ITEM_NO)
         END, 1, 7)) ORDER BY ITEM_KEY_NO DESC) AS ITEM_RNK
@@ -89,7 +89,7 @@ BEGIN
       (SELECT CNTRY_KEY_NO,
         TRIM(SUBSTR(
         CASE
-          WHEN instr(regexp_replace(SUBSTR(trim(ITEM_NO), 4, LENGTH(trim(ITEM_NO))                         -3), '[B-Z]', 'A'), 'A')>0
+          WHEN instr(regexp_replace(SUBSTR(trim(ITEM_NO), 5, LENGTH(trim(ITEM_NO))                         -3), '[B-Z]', 'A'), 'A')>0
           THEN SUBSTR(trim(ITEM_NO), 1, instr(regexp_replace(SUBSTR(trim(ITEM_NO), 4, LENGTH(trim(ITEM_NO))-3), '[B-Z]', 'A'), 'A')+ 2)
           ELSE trim(ITEM_NO)
         END, 1, 7)) AS BASE_7_ITEM_NO,
@@ -103,7 +103,7 @@ BEGIN
         GLBL_BASE_ITEM_DESC,
         DENSE_RANK() OVER(PARTITION BY CNTRY_KEY_NO, TRIM(SUBSTR(
         CASE
-          WHEN instr(regexp_replace(SUBSTR(trim(ITEM_NO), 4, LENGTH(trim(ITEM_NO))                         -3), '[B-Z]', 'A'), 'A')>0
+          WHEN instr(regexp_replace(SUBSTR(trim(ITEM_NO), 5, LENGTH(trim(ITEM_NO))                         -3), '[B-Z]', 'A'), 'A')>0
           THEN SUBSTR(trim(ITEM_NO), 1, instr(regexp_replace(SUBSTR(trim(ITEM_NO), 4, LENGTH(trim(ITEM_NO))-3), '[B-Z]', 'A'), 'A')+ 2)
           ELSE trim(ITEM_NO)
         END, 1, 7)) ORDER BY ITEM_KEY_NO DESC) AS ITEM_RNK
@@ -123,7 +123,7 @@ BEGIN
       (SELECT CNTRY_KEY_NO,
         TRIM(SUBSTR(
         CASE
-          WHEN instr(regexp_replace(SUBSTR(trim(ITEM_NO), 4, LENGTH(trim(ITEM_NO))                         -3), '[B-Z]', 'A'), 'A')>0
+          WHEN instr(regexp_replace(SUBSTR(trim(ITEM_NO), 5, LENGTH(trim(ITEM_NO))                         -3), '[B-Z]', 'A'), 'A')>0
           THEN SUBSTR(trim(ITEM_NO), 1, instr(regexp_replace(SUBSTR(trim(ITEM_NO), 4, LENGTH(trim(ITEM_NO))-3), '[B-Z]', 'A'), 'A')+ 2)
           ELSE trim(ITEM_NO)
         END, 1, 7)) AS BASE_7_ITEM_NO,
@@ -137,7 +137,7 @@ BEGIN
         GLBL_BASE_ITEM_DESC,
         DENSE_RANK() OVER(PARTITION BY CNTRY_KEY_NO, TRIM(SUBSTR(
         CASE
-          WHEN instr(regexp_replace(SUBSTR(trim(ITEM_NO), 4, LENGTH(trim(ITEM_NO))                         -3), '[B-Z]', 'A'), 'A')>0
+          WHEN instr(regexp_replace(SUBSTR(trim(ITEM_NO), 5, LENGTH(trim(ITEM_NO))                         -3), '[B-Z]', 'A'), 'A')>0
           THEN SUBSTR(trim(ITEM_NO), 1, instr(regexp_replace(SUBSTR(trim(ITEM_NO), 4, LENGTH(trim(ITEM_NO))-3), '[B-Z]', 'A'), 'A')+ 2)
           ELSE trim(ITEM_NO)
         END, 1, 7)) ORDER BY ITEM_KEY_NO DESC) AS ITEM_RNK
