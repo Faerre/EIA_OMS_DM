@@ -8,7 +8,7 @@ BEGIN
   /*DWSEAI01.YMM2YM converts YEARMONTH_MONTHS to YEARMONTH*/
   INSERT
     /*+ append parallel(t,32)*/
-  INTO DWSEAI01.OMS_TEMP_RMS t
+  INTO DWSEAI01.OMS_TEMP_RMS_PART_STG t
   SELECT
     /*+ parallel(s,32)*/
     *
