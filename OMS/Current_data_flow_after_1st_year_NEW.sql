@@ -6,14 +6,16 @@ BEGIN
   /*Start of OMS Sales period (6 months including focus month, for RF calculation*/
   YM_END:=DWSEAI01.YMM2YM({YMM});
   /*DWSEAI01.YMM2YM converts YEARMONTH_MONTHS to YEARMONTH*/
-  INSERT /*+ append parallel(t,32)*/
-  INTO DWSEAI01.OMS_TEMP_RMS_STG t
+  INSERT
+    /*+ append parallel(t,32)*/
+  INTO DWSEAI01.OMS_TEMP_RMS t
   SELECT
     /*+ parallel(s,32)*/
     *
   FROM
     (WITH COUNTRY_T AS
     (SELECT CNTRY_KEY_NO,
+      AFF_ID,
       TRIM(CAST(CNTRY_SHORT_NM AS VARCHAR2(30 CHAR))) AS CNTRY_SHORT_NM,
       CAST(AMWAY_CNTRY_CD AS INTEGER)                 AS CNTRY_ID
     FROM DWSAVR02.AWV00004_CNTRY_AFF_DIM
@@ -25,7 +27,7 @@ BEGIN
         WHEN (GPK_TYPE     IN ('GPKh', 'Pending GPKh', 'Customer+')
         AND CNTRY_SHORT_NM IN ('RUSSIA', 'KAZAKHSTAN') )
         THEN GPK_TYPE
-        WHEN (BUS_NATR_CD ='I')
+        WHEN (ACCOUNT_SUBTYPE ='Tax-Registered')
         THEN 'TAX REGISTERED'
         ELSE IMC_TYPE
       END AS DIST_TYPE,
@@ -35,74 +37,66 @@ BEGIN
         T1.SNAP_MO_YR_KEY_NO AS YEARMONTH,
         T1.SPON_IMC_KEY_NO   AS SPONSOR_IMC_KEY_NO,
         T1.IMC_KEY_NO        AS SPONSORED_ABO_KEY_NO,
+        T1.GLOBL_IMC_TYPE_KEY_NO,
         T1.IMC_KEY_NO,
         T2.IMC_NO,
         T2.IMC_AFF_ID,
         T1.STATUS_KEY_NO,
         T1.POSTL_CD_KEY_NO,
+        IMC_TYPE_MAPPING.ACCOUNT_SUBTYPE,
         T2.POSTL_CD_KEY_NO              AS POSTL_CD_KEY_NO_CURR,
         NVL(GPK_T.GPK_TYPE, 'NON-GPKh') AS GPK_TYPE,
-        T1.GLOBL_IMC_TYPE_KEY_NO,
         T1.IMC_CNTRY_KEY_NO,
-        TRIM(T1.BUS_NATR_CD)                        AS BUS_NATR_CD,
         T2.CURR_APPL_DT_KEY_NO                      AS APPL_DT,
         CAST(T2.CURR_APPL_DT_KEY_NO/100 AS INTEGER) AS APPL_YM,
         T2.APP_1_BIRTH_DT_KEY_NO,
         COUNTRY_T.CNTRY_SHORT_NM,
         CASE
-          WHEN ( T1.IMC_CURR_SEG_KEY_NO IN (101, 103) )
-            /*This and next row define Customers for Russia and India - simply those who have 103th Segmnet ("Registered Custiomer")*/
-          AND ( (T1.IMC_CNTRY_KEY_NO                        IN (41, 114, 42, 73, 22, 15,4, 53, 58, 3, 33,38,40,21,31,49,28,50,19,25,43,55)
-          AND TRIM(NVL(T1.BUS_NATR_CD_DESC, T1.BUS_NATR_CD))<>'FOA')
-          OR ( T1.IMC_CNTRY_KEY_NO                          IN (46, 45, 30, 37)
-            /*This and 3 next rows define Customers for Scandi - in Scandi it depends on App date because */
-            /*before 201802 people with BUS_NATR_CD ='C' are Customers and before - also Customers but converted from members*/
-          AND CAST(T2.CURR_APPL_DT_KEY_NO                                                       /100 AS INTEGER) >=201802 )
-          OR ( T1.IMC_CNTRY_KEY_NO                                                                               IN (11,14,27,29)
-          AND CAST(T2.CURR_APPL_DT_KEY_NO                                                       /100 AS INTEGER) >=202001 )
-          OR ( T1.IMC_CNTRY_KEY_NO                                                                               IN (18)
-          AND CAST(T2.CURR_APPL_DT_KEY_NO                                                       /100 AS INTEGER) >=202010 )
-          OR ( T1.IMC_CNTRY_KEY_NO                                                                               IN (8,10,13,23)
-          AND CAST(T2.CURR_APPL_DT_KEY_NO                                                       /100 AS INTEGER) >=202102 ))
+          WHEN IMC_TYPE_MAPPING.ACCOUNT_TYPE IN ('ABO', 'Amway')
+          THEN 'ABO'
+          WHEN IMC_TYPE_MAPPING.ACCOUNT_SUBTYPE IN ('Momspresso Customer', 'Customer')
+          AND CONV_CUST.IBO_NO                  IS NULL
           THEN 'Customer'
-          WHEN ( T1.IMC_CURR_SEG_KEY_NO IN (101, 103) )
-            /*This row and 4 next are the same like preceding 4 rows but for Scandi Customers who converted from Members*/
-          AND ( ( T1.IMC_CNTRY_KEY_NO                                                                        IN (46, 45, 30, 37)
-          AND CAST(T2.CURR_APPL_DT_KEY_NO                                                    /100 AS INTEGER) <201802 )
-          OR ( T1.IMC_CNTRY_KEY_NO                                                                           IN (11,14,27,29)
-          AND CAST(T2.CURR_APPL_DT_KEY_NO                                                    /100 AS INTEGER) <202001 )
-          OR ( T1.IMC_CNTRY_KEY_NO                                                                           IN (18)
-          AND CAST(T2.CURR_APPL_DT_KEY_NO                                                    /100 AS INTEGER) <202010 )
-          OR ( T1.IMC_CNTRY_KEY_NO                                                                           IN (8,10,13,23)
-          AND CAST(T2.CURR_APPL_DT_KEY_NO                                                    /100 AS INTEGER) <202102 ) )
+          WHEN IMC_TYPE_MAPPING.ACCOUNT_SUBTYPE IN ('Customer')
+          AND CONV_CUST.IBO_NO                  IS NOT NULL
           THEN 'Customer (converted from Members)'
-          WHEN ( ( T1.IMC_CNTRY_KEY_NO IN (15)
-          AND T1.IMC_CURR_SEG_KEY_NO   IN (101, 103)
-          AND TRIM(T1.BUS_NATR_CD_DESC) ='FOA'
-          AND T1.SNAP_MO_YR_KEY_NO     >=201909 ) )
-          THEN 'FOA'
-          WHEN ( T1.IMC_CURR_SEG_KEY_NO IN (101, 103) )
-            /*This and 4 next rows define Members*/
-          AND ( T1.IMC_CNTRY_KEY_NO NOT IN (41, 114, 42, 73, 22, 15, 46, 45, 30, 37,4, 53, 58, 3, 33,38,40,21,31,49,28,50,19,25,43,55,11,14,27,29,18,8,10,13,23)
-            /*in the countries outside Scandi, India and Russia...*/
-          OR ( T1.IMC_CNTRY_KEY_NO IN (46, 45, 30, 37,11,14,27,29,18,8,10,13,23)
-            /*and in Scandi (this and 2 next rows. In Russia/India there are no Members*/
-          AND TRIM(T1.BUS_NATR_CD) IN ('M', 'AM') ) )
+          WHEN IMC_TYPE_MAPPING.ACCOUNT_SUBTYPE IN ('Member')
           THEN 'Member'
           ELSE 'ABO'
-            /*all other who were not identified as Members or Customers are ABOs - I include Employees also there to avoid lost sales, however their amount is very low*/
         END AS IMC_TYPE
-      FROM DWSAVR02.DWV00050_IMC_CCYYMM_FACT T1
-      LEFT JOIN (SELECT * FROM DWSAVR02.DWV01021_IMC_MASTER_DIM WHERE NOT(IMC_CNTRY_KEY_NO IN (52,59,60) AND STATUS_KEY_NO NOT IN (21,14))) T2
+      FROM
+        (SELECT *
+        FROM DWSAVR02.DWV00050_IMC_CCYYMM_FACT
+        WHERE NOT(IMC_CNTRY_KEY_NO IN (52,59,60)
+        AND STATUS_KEY_NO NOT      IN (21,14))
+        ) T1
+      LEFT JOIN
+        (SELECT * FROM DWSAVR02.DWV01021_IMC_MASTER_DIM
+        ) T2
       ON T1.IMC_KEY_NO =T2.IMC_KEY_NO
       LEFT JOIN DWSEAI01.GPK_HIST_GDW GPK_T
       ON T1.IMC_KEY_NO         = GPK_T.IMC_KEY_NO
       AND T1.SNAP_MO_YR_KEY_NO =GPK_T.YEARMONTH
       LEFT JOIN COUNTRY_T COUNTRY_T
-      ON T1.IMC_CNTRY_KEY_NO     =COUNTRY_T.CNTRY_KEY_NO
-      WHERE T1.IMC_CNTRY_KEY_NO IN (5,26,6,8,10,11,13,14,16,17,18,23,27,29,30,32,34,37,39,41,42,44,45,46,47,48,52,54,56,57,59,60,74,75,76,114, 134)
-      AND T2.IMC_CNTRY_KEY_NO   IN (5,26,6,8,10,11,13,14,16,17,18,23,27,29,30,32,34,37,39,41,42,44,45,46,47,48,52,54,56,57,59,60,74,75,76,114, 134)
-      AND (T1.SNAP_MO_YR_KEY_NO  =YM_END )
+      ON T1.IMC_CNTRY_KEY_NO =COUNTRY_T.CNTRY_KEY_NO
+      LEFT JOIN DWSEAI01.IMC_TYPE_MAPPING IMC_TYPE_MAPPING
+      ON NVL(NULLIF(TRIM(T1.bus_natr_cd), ''), 'N/A')  =IMC_TYPE_MAPPING.BUS_NATR_CD
+      AND NVL(NULLIF(trim(T1.imc_type_cd), ''), 'N/A') = IMC_TYPE_MAPPING.IMC_TYPE
+      AND COUNTRY_T.AFF_ID                             =IMC_TYPE_MAPPING.AFF_ID
+      LEFT JOIN
+        (SELECT DISTINCT AFF_NO,
+          IBO_NO
+        FROM DWSEAI01.WWV01117_PRTY_LD_NM_TYP_INFMAT
+        WHERE AFF_NO IN (210, 60, 160, 90, 470, 250, 110)
+        ) CONV_CUST
+      ON COUNTRY_T.AFF_ID =CONV_CUST.AFF_NO
+      AND T2.IMC_NO       =CONV_CUST.IBO_NO
+      LEFT JOIN DWSEAI01.EXCL_CUST_EU EXCL_CUST_EU
+      ON T1.IMC_KEY_NO             =EXCL_CUST_EU.IMC_KEY_NO
+      WHERE T1.IMC_CNTRY_KEY_NO   IN (5,26,6,8,10,11,13,14,16,17,18,23,27,29,30,32,34,37,39,41,42,44,45,46,47,48,52,54,56,57,59,60,74,75,76,114, 134)
+      AND T2.IMC_CNTRY_KEY_NO     IN (5,26,6,8,10,11,13,14,16,17,18,23,27,29,30,32,34,37,39,41,42,44,45,46,47,48,52,54,56,57,59,60,74,75,76,114, 134)
+      AND EXCL_CUST_EU.IMC_KEY_NO IS NULL
+      AND (T1.SNAP_MO_YR_KEY_NO    =YM_END )
       ) SN_MAIN
     LEFT JOIN
       (SELECT MO_YR_KEY_NO,
@@ -331,7 +325,7 @@ BEGIN
       )
     WHERE STATUS_KEY_NO IN (14, 21)
     OR PV                >0
-    ) ,
+    ),
     RMS AS
     (SELECT *
     FROM
@@ -524,13 +518,13 @@ BEGIN
         (SELECT T0.*,
           CASE
             WHEN SUM(BUYER_FLAG) OVER (PARTITION BY IMC_KEY_NO, IMC_NO, COUNTRY ORDER BY CAST( T0.YEARMONTH_MONTHS AS INTEGER) RANGE BETWEEN 2 PRECEDING AND CURRENT ROW)>=2
-            AND BUYER_FLAG                                                                                                                                        =1
+            AND BUYER_FLAG                                                                                                                                                =1
             THEN 1
             ELSE 0
-          END                                                                                                                                                                                                                            AS R_BUYER_FLAG,
+          END                                                                                                                                                                                                                                    AS R_BUYER_FLAG,
           T0.YEARMONTH_MONTHS-NVL(NULLIF(MAX(T0.YEARMONTH_MONTHS*BUYER_FLAG) OVER (PARTITION BY IMC_KEY_NO, IMC_NO, COUNTRY ORDER BY CAST( T0.YEARMONTH_MONTHS AS INTEGER) RANGE BETWEEN 5 PRECEDING AND CURRENT ROW), 0), YEARMONTH_MONTHS+1)+1 AS RCNCY_CNT,
           SUM(BUYER_FLAG) OVER (PARTITION BY IMC_KEY_NO, IMC_NO, COUNTRY ORDER BY CAST( T0.YEARMONTH_MONTHS AS INTEGER) RANGE BETWEEN 5 PRECEDING AND CURRENT ROW)                                                                               AS FRQNCY_CNT
-         FROM
+        FROM
           (SELECT T00.*,
             CASE
               WHEN NVL(T00.PV, 0)>0
