@@ -39,7 +39,7 @@ BEGIN
         BUS_LN_CD,
         BRAND_CD
       FROM DWSATM01.DWT42126_ITEM_EBS
-      WHERE NVL(ITEM_CNTRY_CD, INTGRT_CNTRY_CD) IN ('030','240','210','620','650','390','800','340','820','810','150','590','490','140','450','660','080','060','480','160','120','090','470','460','280','370','750','740','570','270','250','110','300','040','430','830','420')
+      WHERE NVL(ITEM_CNTRY_CD, INTGRT_CNTRY_CD) IN ('030','240','210','620','650','390','800','340','820','810','150','590','490','140','450','660','080','060','480','160','120','090','470','460','280','370','750','740','570','270','250','110','300','040','830','420')
       ) DICT,
       DWSATM01.DWT43045_GLBL_BUS_LN BUS_LN,
       DWSATM01.DWT43046_GLBL_CTGRY CTGRY,
@@ -77,7 +77,7 @@ BEGIN
           ELSE trim(ITEM_NO)
         END, 1, 7)) ORDER BY ITEM_KEY_NO DESC) AS ITEM_RNK
       FROM dwsavr02.dwv03000_item_dim
-      WHERE cntry_key_no                                                                    IN (5, 26, 23, 134, 56, 39, 76, 34, 74, 75, 17, 54, 48, 16, 44, 57, 10, 8, 47, 18, 14, 11, 46, 45, 30, 37, 60, 59, 52, 29, 27, 13, 32, 6, 42, 114, 41)
+      WHERE cntry_key_no                                                                    IN (5, 26, 23, 134, 56, 39, 76, 34, 74, 75, 17, 54, 48, 16, 44, 57, 10, 8, 47, 18, 14, 11, 46, 45, 30, 37, 60, 59, 52, 29, 27, 13, 32, 6,  114, 41)
       AND CAST(SUBSTR(mo_yr_curcy_comb_key_no, 1, 6) AS INTEGER) = EXTRACT(YEAR FROM SYSDATE)*100+EXTRACT(MONTH FROM SYSDATE)
       AND base_7_item_no                                        IS NOT NULL
       )
@@ -108,7 +108,7 @@ BEGIN
           ELSE trim(ITEM_NO)
         END, 1, 7)) ORDER BY ITEM_KEY_NO DESC) AS ITEM_RNK
       FROM dwsavr02.dwv03000_item_dim
-      WHERE cntry_key_no                                                                    IN (5, 26, 23, 134, 56, 39, 76, 34, 74, 75, 17, 54, 48, 16, 44, 57, 10, 8, 47, 18, 14, 11, 46, 45, 30, 37, 60, 59, 52, 29, 27, 13, 32, 6, 42, 114, 41)
+      WHERE cntry_key_no                                                                    IN (5, 26, 23, 134, 56, 39, 76, 34, 74, 75, 17, 54, 48, 16, 44, 57, 10, 8, 47, 18, 14, 11, 46, 45, 30, 37, 60, 59, 52, 29, 27, 13, 32, 6,  114, 41)
       AND CAST(SUBSTR(mo_yr_curcy_comb_key_no, 1, 6) AS INTEGER) = EXTRACT(YEAR FROM SYSDATE)*100+EXTRACT(MONTH FROM SYSDATE)
       AND base_7_item_no                                        IS NOT NULL
       AND NVL(item_desc, 'N/A')                                 <> 'Inserted From OMS Orders'
@@ -142,7 +142,7 @@ BEGIN
           ELSE trim(ITEM_NO)
         END, 1, 7)) ORDER BY ITEM_KEY_NO DESC) AS ITEM_RNK
       FROM dwsavr02.dwv03000_item_dim
-      WHERE cntry_key_no                                                                    IN (5, 26, 23, 134, 56, 39, 76, 34, 74, 75, 17, 54, 48, 16, 44, 57, 10, 8, 47, 18, 14, 11, 46, 45, 30, 37, 60, 59, 52, 29, 27, 13, 32, 6, 42, 114, 41)
+      WHERE cntry_key_no                                                                    IN (5, 26, 23, 134, 56, 39, 76, 34, 74, 75, 17, 54, 48, 16, 44, 57, 10, 8, 47, 18, 14, 11, 46, 45, 30, 37, 60, 59, 52, 29, 27, 13, 32, 6,  114, 41)
       AND CAST(SUBSTR(mo_yr_curcy_comb_key_no, 1, 6) AS INTEGER) = EXTRACT(YEAR FROM SYSDATE)*100+EXTRACT(MONTH FROM SYSDATE)
       AND NVL(item_desc, 'N/A')                                 <> 'Inserted From OMS Orders'
       )
@@ -175,7 +175,7 @@ BEGIN
         AFF_KEY_NO,
         CAST(AMWAY_CNTRY_CD AS INTEGER) AS CNTRY_ID
       FROM DWSAVR02.AWV00004_CNTRY_AFF_DIM
-      WHERE CNTRY_KEY_NO IN (6, 8, 10, 11, 13, 14, 16, 17, 18, 23, 27, 29, 30, 32, 34, 37, 39, 41, 42, 44, 45, 46, 47, 48, 52, 54, 56, 57, 59, 60, 74, 75, 76, 114, 134, 5, 26)
+      WHERE CNTRY_KEY_NO IN (6, 8, 10, 11, 13, 14, 16, 17, 18, 23, 27, 29, 30, 32, 34, 37, 39, 41,  44, 45, 46, 47, 48, 52, 54, 56, 57, 59, 60, 74, 75, 76, 114, 134, 5, 26)
       ) T1
     ON ITEM_DIM_0.CNTRY_KEY_NO=T1.CNTRY_KEY_NO
     ),
@@ -267,7 +267,7 @@ BEGIN
       AND ORD_LN_DISP_CD IN ('*', '1', 'E', 'Item Disposition Code:  S/S', 'Item Disposition Code:  S/T', 'S', 'Item Disposition Code:  S/B', 'Item Disposition Code:  S/N', '2')
       AND ORD_CANC_FLAG   ='false'
       AND PAY_REQ_FLAG   <>'N'
-      AND OPER_CNTRY_ID  IN (30,240,210,620,650,390,800,340,820,810,150,590,490,140,450,660,80,60,480,160,120,90,470,460,280,370,750,740,570,270,250,110,300,40,430,830,420)
+      AND OPER_CNTRY_ID  IN (30,240,210,620,650,390,800,340,820,810,150,590,490,140,450,660,80,60,480,160,120,90,470,460,280,370,750,740,570,270,250,110,300,40,830,420)
       GROUP BY 
       OPER_AFF_ID,
       OPER_CNTRY_ID,
@@ -277,7 +277,7 @@ BEGIN
       ) FACT_T,
       ITEM_DIM_CORR ITM_T,
       EUR_MKTG_INPUT EUR_ITM_T
-    WHERE ITM_T.CNTRY_KEY_NO IN (6,8,10,11,13,14,16,17,18,23,27 ,29,30,32,34,37,39,41,42,44,45,46,47,48,52,54,56,57,59,60,74, 75,76,114,134,5,26)
+    WHERE ITM_T.CNTRY_KEY_NO IN (6,8,10,11,13,14,16,17,18,23,27 ,29,30,32,34,37,39,41,44,45,46,47,48,52,54,56,57,59,60,74, 75,76,114,134,5,26)
     AND ITM_T.BASE_7_ITEM_NO  =SUBSTR(FACT_T.ORD_ITEM_BASE_CD, 1, 7)
     AND ITM_T.CNTRY_ID        =FACT_T.OPER_CNTRY_ID
     AND ITM_T.BASE_7_ITEM_NO  =EUR_ITM_T.SKU(+)
